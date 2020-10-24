@@ -18,5 +18,11 @@ namespace JobProject
             streamwriter.WriteLine(logSave);
             streamwriter.Close();
             }
+        public static void Logging(string logSave, string path)
+            {
+            var streamwriter = new StreamWriter(path, true, Encoding.UTF8);
+            streamwriter.WriteLine(logSave);
+            streamwriter.Close();
+            }
         }
     }

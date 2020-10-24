@@ -4,20 +4,21 @@ namespace JobProject
     {
     public static class Calculate
         {
-        public static double GetMedianNumber(List<double> numbersList)
+        public static double GetMedianNumber(List<ulong> numbersList)
             {
-            double median;
             numbersList.Sort();
             var countNumbers = numbersList.Count;
-            if (countNumbers % 2 != 0)
+            if (countNumbers % 2 == 0)
                 {
-                median = numbersList[countNumbers / 2];
-                return median;
+                var result = ((double)numbersList[(countNumbers / 2 - 1)] + numbersList[countNumbers / 2]) / 2;
+                Log.Logging(result.ToString(), "result.txt");
+                return result;
                 }
             else
                 {
-                median = (numbersList[(countNumbers / 2 - 1)] + numbersList[countNumbers / 2]) / 2;
-                return median;
+                var result = (double)numbersList[countNumbers / 2];
+                Log.Logging(result.ToString(), "result.txt");
+                return result;
                 }
             }
 

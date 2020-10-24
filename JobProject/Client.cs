@@ -6,13 +6,15 @@ using System.Threading;
 
 namespace JobProject
     {
-    public class Client
+    public partial class Client
         {
-        private int id;
+        public event EventHandler<EndClientTaskEventArgs> EndClientWork;
+
+        public int id;
         private string ip = "88.212.241.115";
         private int port = 2012;
         private TcpClient client;
-        private List<int> threadResult;
+        private List<ulong> clientWorkResult;
         private string dataReadOnServer = "";
         private string localResultNumber = "";
         private NetworkStream stream;
@@ -27,7 +29,7 @@ namespace JobProject
             log = new Log(GetLogPath());
             GetRangeNumber(startNumber, finalNumber);
             lastWriteNumber = startNumber;
-            threadResult = new List<int>();
+            clientWorkResult = new List<ulong>();
             }
 
         public void Start()
@@ -35,7 +37,19 @@ namespace JobProject
             Connect();
             StartListining();
             }
-
+        public void Stop()
+            {
+            stream.Close();
+            client.Close();
+            }
+        public List<ulong> GetClientResult()
+            {
+            return clientWorkResult;
+            }
+        public int GetCompleteNumbersCount()
+            {
+            return clientWorkResult.Count;
+            }
         private void Connect()
             {
             try
@@ -63,13 +77,23 @@ namespace JobProject
                 Thread.Sleep(1000);
                 ReadMessageOnServer();
                 }
+            EndClientWork?.Invoke(this, new EndClientTaskEventArgs(this));
             }
 
         private void SentMessageOnServer(string message)
             {
-            var dataWriteOnServer = Encoding.ASCII.GetBytes($"{message}\n");
-            stream.Write(dataWriteOnServer, 0, dataWriteOnServer.Length);
-            log.Logging($"Sent: {message}\n");
+            try
+                {
+                var dataWriteOnServer = Encoding.ASCII.GetBytes($"{message}\n");
+                stream.Write(dataWriteOnServer, 0, dataWriteOnServer.Length);
+                log.Logging($"Sent: {message}\n");
+                }
+            catch (Exception e)
+                {
+                log.Logging($"Exeption {e.Message}");
+                Connect();
+                StartListining();
+                }
             }
 
         private void ReadMessageOnServer()
@@ -83,18 +107,17 @@ namespace JobProject
                     stream.Read(bytes, 0, 1);
 
                     dataReadOnServer = Encoding.UTF8.GetString(bytes);
-
-                    ;
-                    if (int.TryParse(dataReadOnServer, out int onlyInt))
+                    log.Logging($"Server callback: {dataReadOnServer}");
+                    if (ulong.TryParse(dataReadOnServer, out ulong onlyLong))
                         {
-                        localResultNumber += onlyInt.ToString();
+                        localResultNumber += onlyLong.ToString();
                         continue;
                         }
                     if (dataReadOnServer == "\n")
                         {
-                        threadResult.Add(Convert.ToInt32(localResultNumber));
+                        clientWorkResult.Add(Convert.ToUInt64(localResultNumber));
                         log.Logging($"Final result: {localResultNumber}");
-                        log.Logging($"Count final result: {threadResult.Count}");
+                        log.Logging($"Count final result: {clientWorkResult.Count}");
                         localResultNumber = "";
                         lastWriteNumber++;
                         return;
@@ -102,6 +125,7 @@ namespace JobProject
                     }
                 catch (Exception e)
                     {
+                    localResultNumber = "";
                     log.Logging($"Exeption {e.Message}");
                     Connect();
                     StartListining();
